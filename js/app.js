@@ -192,67 +192,99 @@ target.addEventListener(
         hideInformation();
     }
 );
-const camera =
-    cameraElement.getObject3D(
-        "camera"
+/*
+* Converte a posição 3D de cada hotspot
+* (em relação ao target) para posição na tela.
+* Roda a cada frame com requestAnimationFrame().
+*/
+function updateHotspotPositions() {
+    requestAnimationFrame(
+        updateHotspotPositions
     );
 
-if (
-    !camera ||
-    !target.object3D
-) {
-    return;
+    /*
+    * Sem target rastreado não tem o que projetar.
+    */
+    if (!tracking) {
+        return;
+    }
+
+    const camera =
+        cameraElement.getObject3D(
+            "camera"
+        );
+
+    if (
+        !camera ||
+        !target.object3D
+    ) {
+        return;
+    }
+
+    target.object3D.updateMatrixWorld(
+        true
+    );
+    camera.updateMatrixWorld(
+        true
+    );
+
+    hotspots.forEach(
+        (button) => {
+            const localPoint =
+                new THREE.Vector3(
+                    Number(button.dataset.x),
+                    Number(button.dataset.y),
+                    Number(button.dataset.z)
+                );
+            const worldPoint =
+                target.object3D.localToWorld(
+                    localPoint
+                );
+            const projectedPoint =
+                worldPoint
+                    .clone()
+                    .project(
+                        camera
+                    );
+            const screenX =
+                (
+                    projectedPoint.x * 0.5 +
+                    0.5
+                ) *
+                window.innerWidth;
+            const screenY =
+                (
+                    -projectedPoint.y * 0.5 +
+                    0.5
+                ) *
+                window.innerHeight;
+            const insideScreen =
+                projectedPoint.z > -1 &&
+                projectedPoint.z < 1 &&
+                screenX > -80 &&
+                screenX < window.innerWidth + 80 &&
+                screenY > -80 &&
+                screenY < window.innerHeight + 80;
+
+            /*
+            * Posiciona o botão na tela.
+            */
+            button.style.left =
+                screenX + "px";
+            button.style.top =
+                screenY + "px";
+
+            button.style.visibility =
+                insideScreen
+                    ? "visible"
+                    : "hidden";
+        }
+    );
 }
 
-target.object3D.updateMatrixWorld(
-    true
-);
-camera.updateMatrixWorld(
-    true
-);
-const localPoint =
-    new THREE.Vector3(
-        Number(button.dataset.x),
-        Number(button.dataset.y),
-        Number(button.dataset.z)
-    );
-const worldPoint =
-    target.object3D.localToWorld(
-        localPoint
-    );
-const projectedPoint =
-    worldPoint
-        .clone()
-        .project(
-            camera
-        );
-const screenX =
-    (
-        projectedPoint.x * 0.5 +
-        0.5
-    ) *
-    window.innerWidth;
-const screenY =
-    (
-        -projectedPoint.y * 0.5 +
-        0.5
-    ) *
-    window.innerHeight;
-const insideScreen =
-    projectedPoint.z > -1 &&
-    projectedPoint.z < 1 &&
-    screenX > -80 &&
-    screenX < window.innerWidth + 80 &&
-    screenY > -80 &&
-    screenY < window.innerHeight + 80;
-
-button.style.visibility =
-    insideScreen
-        ? "visible"
-        : "hidden";
 /*
 * Primeira chamada.
-* As próximas serão agendadas
+* As próximas são agendadas
 * por requestAnimationFrame().
 */
 updateHotspotPositions();
